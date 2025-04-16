@@ -1,0 +1,2 @@
+
+print("GhostDeals Bot activated")
