@@ -84,7 +84,19 @@ async def alert_test(interaction: discord.Interaction, message: str):
     if matches:
         for kw in matches:
             alert_manager.log_alert(kw, message)
-        await interaction.response.send_message(f"Match found: {', '.join(matches)} — alert logged.")
+        await interaction.response.send_message(f"Match found: {', '.join(matches)} - alert logged.")
+
+        log_channel = bot.get_channel(log_channel_id)
+        if log_channel:
+            embed = discord.Embed(
+                title="?? Keyword Alert Triggered",
+                color=discord.Color.orange()
+            )
+            embed.add_field(name="User", value=interaction.user.mention, inline=True)
+            embed.add_field(name="Matched Keywords", value=", ".join(matches), inline=True)
+            embed.add_field(name="Message", value=message, inline=False)
+            embed.set_footer(text=f"Timestamp: {datetime.utcnow().isoformat()} UTC")
+            await log_channel.send(embed=embed)
     else:
         await interaction.response.send_message("No keywords matched.")
 
@@ -95,9 +107,15 @@ async def on_ready():
         await bot.tree.sync(guild=None)
         guild = discord.Object(id=1360727779385016371)
         await bot.tree.sync(guild=guild)
-        print("Slash commands synced to guild.")
+        print("? Slash commands synced to guild.")
     except Exception as e:
-        print(f"Slash sync failed: {e}")
+        print(f"? Slash sync failed: {e}")
+
+    try:
+        await bot.load_extension("sniper")
+        print("? sniper.py cog loaded.")
+    except Exception as e:
+        print(f"? Failed to load sniper.py cog: {e}")
 
 @bot.event
 async def on_connect():
