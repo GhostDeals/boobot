@@ -1,4 +1,3 @@
-# main.py
 # -*- coding: utf-8 -*-
 import discord
 from discord.ext import commands
@@ -36,7 +35,7 @@ async def error(interaction: discord.Interaction):
         raise ValueError("Test error for webhook logging!")
     except Exception as e:
         await interaction.response.send_message("Triggered error for webhook test.")
-        error_handler.send_error_to_webhook(str(e))
+        await error_handler.handle_error(e)
 
 @tree.command(name="uptime", description="Show how long BooBot has been running.")
 async def uptime(interaction: discord.Interaction):
@@ -62,7 +61,7 @@ async def clear(interaction: discord.Interaction, amount: int = 10, full: bool =
         await interaction.followup.send(f"Deleted {len(deleted)} messages.", ephemeral=True)
     except Exception as e:
         await interaction.followup.send("Failed to delete messages.", ephemeral=True)
-        error_handler.send_error_to_webhook(str(e))
+        await error_handler.handle_error(e)
 
 @tree.command(name="alert_add", description="Add a keyword to track.")
 async def alert_add(interaction: discord.Interaction, keyword: str):
@@ -85,7 +84,7 @@ async def alert_test(interaction: discord.Interaction, message: str):
     if matches:
         for kw in matches:
             alert_manager.log_alert(kw, message)
-        await interaction.response.send_message(f"Match found: {', '.join(matches)} — alert logged.")
+        await interaction.response.send_message(f"Match found: {', '.join(matches)} â€” alert logged.")
     else:
         await interaction.response.send_message("No keywords matched.")
 
@@ -107,15 +106,19 @@ async def on_connect():
     print("Forced sync on connect.")
 
 @bot.event
+async def on_command_error(ctx, error):
+    await error_handler.handle_error(error)
+
+@bot.event
 async def setup_hook():
     bot.loop.create_task(bot_monitor.BotMonitor(bot, monitored_ids, log_channel_id).start_monitoring())
     uptime_logger.UptimeLogger(bot, log_channel_id).start()
 
-# Start BooBot
 try:
     token = os.getenv("DISCORD_TOKEN")
     if not token:
         raise ValueError("DISCORD_TOKEN not found in .env")
     bot.run(token)
 except Exception as e:
-    error_handler.send_error_to_webhook(str(e))
+    import asyncio
+    asyncio.run(error_handler.handle_error(e))
