@@ -5,3 +5,4 @@ __pycache__/
 *.err
 .DS_Store
 .env
+.env
