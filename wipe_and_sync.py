@@ -1,31 +1,39 @@
+# wipe_and_sync.py
 import discord
 from discord.ext import commands
 import os
 from dotenv import load_dotenv
+from ghostgrab import GhostGrab
 
 load_dotenv()
 
-bot = commands.Bot(command_prefix="!")
+intents = discord.Intents.default()
+bot = commands.Bot(command_prefix="!", intents=intents)
+GUILD_ID = 1360727779385016371
 
 @bot.event
 async def on_ready():
-    print(f"?? Logged in as {bot.user.name}")
-    guild = discord.Object(id=1360727779385016371)
+    print(f"? Logged in as {bot.user}")
 
-    # Wipe all slash commands
-    await bot.tree.clear_commands(guild=guild)
-    print("?? Wiped existing slash commands from guild.")
+    try:
+        await bot.load_extension("ghostgrab")
+        print("? ghostgrab.py loaded successfully.")
+    except Exception as e:
+        print(f"? Failed to load ghostgrab: {e}")
+        return
 
-    # Reload ghostgrab cog
-    await bot.load_extension("ghostgrab")
-    print("?? Reloaded ghostgrab.")
-
-    # Sync new
-    synced = await bot.tree.sync(guild=guild)
-    print(f"? Resynced {len(synced)} commands.")
-    for cmd in synced:
-        print(f"?? /{cmd.name}")
+    try:
+        synced = await bot.tree.sync(guild=discord.Object(id=GUILD_ID))
+        print(f"?? Wiped and synced {len(synced)} slash commands.")
+        for cmd in synced:
+            print(f"? Registered: /{cmd.name}")
+    except Exception as e:
+        print(f"? Slash sync failed: {e}")
 
     await bot.close()
 
-bot.run(os.getenv("DISCORD_TOKEN"))
+if __name__ == "__main__":
+    token = os.getenv("DISCORD_TOKEN")
+    if not token:
+        raise ValueError("DISCORD_TOKEN not found in .env file")
+    bot.run(token)
